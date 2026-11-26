@@ -79,8 +79,10 @@ line end so that a probe never splits a sentence. At each $t_j$ we feed
 $x \,\|\, z_{1:t_j} \,\|$ \texttt{</think>}\,\texttt{The final answer is \$\textbackslash boxed\{} and decode greedily
 until the box closes. This gives an answer $a_j$, its probability $c_j=\prod p(\text{answer tokens})$, and the number of
 hesitation words (``wait'', ``hmm'', \dots) so far. With prefix caching \cite{vllm} each probe only costs the new
-tokens. The sequence $(a_j, c_j)_{j=1}^m$ is the \emph{answer trajectory}; $a_m$ is what the model would answer at its own
-stopping point.
+tokens. The sequence $(a_j, c_j)_{j=1}^m$ is the \emph{answer trajectory}. At the model's own stopping point we use the
+answer it actually writes after \texttt{</think>} as $a_m$, not the forced probe: forcing a box immediately after
+\texttt{</think>} occasionally drops a sign or a square root that the model's own answer keeps, and we report this
+probe noise separately (Section~\ref{sec:limits}).
 
 \subsection{Outcome categories}
 Let $y_j=\mathbb{1}[a_j \text{ is correct}]$. A trace is \emph{never} correct if all $y_j=0$; \emph{kept} if $y_m=1$ and
@@ -127,7 +129,20 @@ compared after normalisation and with \texttt{math-verify}. \textbf{Compute.} On
 
 \section{Discussion and Limitations}
 \label{sec:limits}
-\todo{}
+\todo{discussion after all results}
+
+\textbf{Probes are a reading, not the model's answer.} A forced answer is what the model writes when made to stop,
+which is the right quantity for a stopping rule but can differ from what it would write after a natural stop. At the
+end of thinking, where both exist, they disagree on \todo{x}\% of traces (mostly format: a dropped sign or root). We
+therefore count harmful overthinking only when an intermediate probe is correct, and use the model's own answer at the
+end; residual probe noise can still create spurious ``correct'' intermediate probes, so our flip rates are upper bounds
+on genuine answer reversals.
+
+\textbf{Scope.} One model family, one sampling setting, two samples per problem, mathematics only, and a probe every
+$\sim$128 tokens (finer probing would only move the oracle earlier). AIME results rest on 60 problems and are mostly
+truncated at 8{,}192 tokens, so we report them but do not draw conclusions from them. Thresholds are tuned per model;
+we did not test transfer across models or datasets. The commitment test changes one number; other corruptions
+(deleting a step, inserting a wrong claim) may give different dependence.
 
 \section{Conclusion}
 \todo{}
