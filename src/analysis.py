@@ -296,16 +296,26 @@ def stabilization_fraction(r: dict) -> float:
 def summarize_intervene(path: str) -> dict:
     """P(final answer changes) under corruption vs clean resampling, per relative position."""
     rows = [json.loads(line) for line in open(path)]
-    out = {}
-    for pos in sorted({r["pos"] for r in rows}):
+
+    def changed(r):
+        return not (r["answer"] is not None and r["orig_answer"] is not None and GRADE(r["answer"], r["orig_answer"]))
+
+    def block(sel):
         d = {}
         for cond in ("clean", "corrupt"):
-            sub = [r for r in rows if r["pos"] == pos and r["cond"] == cond]
-            ch = [not (r["answer"] is not None and r["orig_answer"] is not None and GRADE(r["answer"], r["orig_answer"]))
-                  for r in sub]
-            d[cond] = dict(n=len(sub), changed=round(sum(ch) / max(len(sub), 1), 4))
+            sub = [r for r in rows if sel(r) and r["cond"] == cond]
+            d[cond] = dict(n=len(sub), changed=round(sum(map(changed, sub)) / max(len(sub), 1), 4),
+                           unfinished=round(sum(r["answer"] is None for r in sub) / max(len(sub), 1), 4),
+                           correct=round(sum(r["answer"] is not None and GRADE(r["answer"], r["gold"]) for r in sub)
+                                         / max(len(sub), 1), 4))
         d["effect"] = round(d["corrupt"]["changed"] - d["clean"]["changed"], 4)
-        out[str(pos)] = d
+        return d
+
+    out = {"by_position": {str(p): block(lambda r, p=p: r["pos"] == p) for p in sorted({r["pos"] for r in rows})}}
+    if rows and "after_stab" in rows[0]:
+        out["before_stabilization"] = block(lambda r: not r["after_stab"])
+        out["after_stabilization"] = block(lambda r: r["after_stab"])
+    out["by_category"] = {c: block(lambda r, c=c: r["category"] == c) for c in sorted({r["category"] for r in rows})}
     return out
 
 

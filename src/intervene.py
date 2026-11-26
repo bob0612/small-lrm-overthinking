@@ -46,11 +46,11 @@ def main():
     ap.add_argument("--run", required=True, help="run dir with traces.jsonl and config.json")
     ap.add_argument("--per-category", type=int, default=60, help="traces sampled per outcome category")
     ap.add_argument("--positions", nargs="+", type=float, default=[0.25, 0.5, 0.75, 0.9])
-    ap.add_argument("--max-new", type=int, default=4096)
+    ap.add_argument("--max-new", type=int, default=6144, help="cap on new tokens; each job gets 1.5x the tokens the original trace still had, plus 512")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     cfg = json.load(open(os.path.join(a.run, "config.json")))
-    from src.analysis import classify, load_traces
+    from src.analysis import classify, load_traces, stabilization_fraction
     from src.backend import VLLMBackend
 
     traces = [r for r in load_traces(a.run) if r["sample"] == 0 and not r["truncated"]]
@@ -64,21 +64,26 @@ def main():
     be = VLLMBackend(cfg["model"], cfg.get("revision"), max_model_len=cfg["max_think"] + 2048, seed=a.seed)
 
     # Intervene on the exact thinking text of each chosen trace.
-    jobs, meta = [], []
+    jobs, meta, budgets = [], [], []
     for r in chosen:
         p = be.chat_prompt_ids(data.user_message(items[r["id"]]))
         think_text = r["think_text"]
+        stab = stabilization_fraction(r)
         for pos in a.positions:
             cut = think_text[: int(len(think_text) * pos)]
             cut = cut[: cut.rfind("\n") + 1] or cut
             bad = corrupt_last_number(cut, rng)
             if bad is None:
                 continue
+            budget = min(a.max_new, int(1.5 * (1 - pos) * r["think_len"]) + 512)
             for cond, txt in (("clean", cut), ("corrupt", bad)):
                 jobs.append(p + be.encode(txt))
+                budgets.append(budget)
                 meta.append(dict(id=r["id"], dataset=r["dataset"], category=classify(r), pos=pos, cond=cond,
+                                 stab=round(stab, 4), after_stab=pos >= stab,
                                  orig_answer=r["probes"][-1]["ans"], gold=r["gold"]))
-    outs = be.continue_from(jobs, max_tokens=a.max_new, seed=a.seed + 7)
+    print(f"{len(chosen)} traces, {len(jobs)} continuations", flush=True)
+    outs = be.continue_from(jobs, max_tokens=budgets, seed=a.seed + 7)
     with open(os.path.join(a.run, "intervene.jsonl"), "w") as f:
         for m, o in zip(meta, outs):
             text = be.decode(o)

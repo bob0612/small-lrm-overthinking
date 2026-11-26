@@ -58,16 +58,19 @@ def test_reports(tmp_path):
     with open(rd / "intervene.jsonl", "w") as f:
         for pos in (0.5, 0.9):
             for cond, ans in (("clean", "5"), ("corrupt", "6")):
-                f.write(json.dumps(dict(id="p-0", pos=pos, cond=cond, answer=ans, orig_answer="5")) + "\n")
+                f.write(json.dumps(dict(id="p-0", pos=pos, cond=cond, answer=ans, orig_answer="5", gold="5",
+                                       category="kept", after_stab=pos > 0.6)) + "\n")
     import subprocess, sys as _s
     out = tmp_path / "summary"
     subprocess.run([_s.executable, "-m", "src.analysis", str(rd), "--out", str(out)], check=True,
                    cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     S = json.load(open(out / "summary.json"))
-    assert S["qwen3-0.6b"]["intervene"]["0.5"]["effect"] == 1.0
+    assert S["qwen3-0.6b"]["intervene"]["by_position"]["0.5"]["effect"] == 1.0
+    assert S["qwen3-0.6b"]["intervene"]["after_stabilization"]["corrupt"]["n"] == 1
     _s.argv = ["x", str(out / "summary.json"), "--out", str(tmp_path / "tab")]
     tables.main()
     assert "Flip" in open(tmp_path / "tab" / "outcomes.tex").read()
+    assert "stabil" in open(tmp_path / "tab" / "commitment.tex").read()
     _s.argv = ["x", str(out / "summary.json"), "--out", str(tmp_path / "fig")]
     figures.main()
     assert (tmp_path / "fig" / "pareto.pdf").exists()

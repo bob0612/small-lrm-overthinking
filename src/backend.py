@@ -50,10 +50,14 @@ class VLLMBackend:
             res.append((list(c.token_ids), lps))
         return res
 
-    def continue_from(self, prompts: list[list[int]], max_tokens: int, seed: int) -> list[list[int]]:
+    def continue_from(self, prompts: list[list[int]], max_tokens, seed: int) -> list[list[int]]:
+        """max_tokens: an int, or one int per prompt. No per-request seed (it forces vLLM's slow
+        per-request sampler); the engine seed makes runs repeatable."""
         from vllm import SamplingParams, TokensPrompt
 
-        sp = SamplingParams(n=1, max_tokens=max_tokens, seed=seed, **THINK_SAMPLING)
+        if isinstance(max_tokens, int):
+            max_tokens = [max_tokens] * len(prompts)
+        sp = [SamplingParams(n=1, max_tokens=m, **THINK_SAMPLING) for m in max_tokens]
         outs = self.llm.generate([TokensPrompt(prompt_token_ids=p) for p in prompts], sp)
         return [list(o.outputs[0].token_ids) for o in outs]
 

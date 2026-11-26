@@ -66,6 +66,26 @@ def table_predictors(S):
     return "\n".join(rows)
 
 
+def table_commitment(S):
+    """Answer changes after continuing from a cut, clean vs with the last number corrupted."""
+    rows = [r"\begin{tabular}{llrrrr}", r"\toprule",
+            r"Model & Cut & $n$ & Clean & Corrupt & Effect \\", r"\midrule"]
+    for m, res in S.items():
+        iv = res.get("all", {}).get("intervene") or res.get("intervene")
+        if not iv:
+            continue
+        blocks = [(f"{float(p):.0%}".replace("%", r"\%"), d) for p, d in iv["by_position"].items()]
+        if "before_stabilization" in iv:
+            blocks += [("before stabil.", iv["before_stabilization"]), ("after stabil.", iv["after_stabilization"])]
+        for i, (name, d) in enumerate(blocks):
+            rows.append(f"{LABEL.get(m, m) if i == 0 else ''} & {name} & {d['corrupt']['n']} & "
+                        f"{pct(d['clean']['changed'])} & {pct(d['corrupt']['changed'])} & {100 * d['effect']:+.1f} \\\\")
+        rows.append(r"\midrule")
+    rows[-1] = r"\bottomrule"
+    rows.append(r"\end{tabular}")
+    return "\n".join(rows)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("summary")
@@ -73,7 +93,8 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     S = json.load(open(a.summary))
-    for name, fn in [("outcomes", table_outcomes), ("cv", table_cv), ("predictors", table_predictors)]:
+    for name, fn in [("outcomes", table_outcomes), ("cv", table_cv), ("predictors", table_predictors),
+                     ("commitment", table_commitment)]:
         with open(os.path.join(a.out, f"{name}.tex"), "w") as f:
             f.write(fn(S) + "\n")
     print("tables written to", a.out)
