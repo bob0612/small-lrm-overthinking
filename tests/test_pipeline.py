@@ -74,3 +74,25 @@ def test_reports(tmp_path):
     _s.argv = ["x", str(out / "summary.json"), "--out", str(tmp_path / "fig")]
     figures.main()
     assert (tmp_path / "fig" / "pareto.pdf").exists()
+
+
+def test_intervene(tmp_path, monkeypatch):
+    """The commitment test runs end to end; continuations without an answer get a forced probe."""
+    import src.backend as B
+    from src import intervene
+    be = FakeBackend(SCRIPTS)
+    R.run(be, make_items(), str(tmp_path), n=2, max_think=10_000, every=8, seed=0, log=lambda *_: None)
+    json.dump(dict(model="fake", max_think=10_000), open(tmp_path / "config.json", "w"))
+    monkeypatch.setattr(B, "VLLMBackend", lambda *a, **k: be)
+    monkeypatch.setattr(data, "load", lambda names, *a, **k: make_items())
+    # half the continuations never close their thinking
+    orig = be.continue_from
+    monkeypatch.setattr(be, "continue_from", lambda ps, max_tokens, seed: [
+        o if i % 2 else be.encode(" ANS=5\n") for i, o in enumerate(orig(ps, max_tokens, seed))])
+    monkeypatch.setattr(sys, "argv", ["x", "--run", str(tmp_path), "--positions", "0.5"])
+    intervene.main()
+    rows = [json.loads(line) for line in open(tmp_path / "intervene.jsonl")]
+    assert rows and all(r["answer"] is not None for r in rows)
+    assert any(r["forced"] for r in rows) and not all(r["forced"] for r in rows)
+    out = A.summarize_intervene(str(tmp_path / "intervene.jsonl"))
+    assert "before_stabilization" in out and out["by_position"]["0.5"]["clean"]["n"] > 0

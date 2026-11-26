@@ -18,7 +18,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src import data  # noqa: E402
+from src.backend import PROBE_SUFFIX  # noqa: E402
 from src.grade import extract_boxed  # noqa: E402
+from src.run import answer_from_probe  # noqa: E402
 
 NUM = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)(?![\w.])")
 
@@ -61,7 +63,8 @@ def main():
         rng.shuffle(pool)
         chosen += pool[: a.per_category]
     items = {it["id"]: it for it in data.load(sorted({r["dataset"] for r in chosen}))}
-    be = VLLMBackend(cfg["model"], cfg.get("revision"), max_model_len=cfg["max_think"] + 2048, seed=a.seed)
+    max_len = cfg["max_think"] + 2048
+    be = VLLMBackend(cfg["model"], cfg.get("revision"), max_model_len=max_len, seed=a.seed)
 
     # Intervene on the exact thinking text of each chosen trace.
     jobs, meta, budgets = [], [], []
@@ -75,20 +78,32 @@ def main():
             bad = corrupt_last_number(cut, rng)
             if bad is None:
                 continue
-            budget = min(a.max_new, int(1.5 * (1 - pos) * r["think_len"]) + 512)
+            # Room for the rest of the thinking (2x what the original trace still had) plus the written answer.
+            budget = int(2 * (1 - pos) * r["think_len"]) + r.get("answer_len", 1024) + 512
             for cond, txt in (("clean", cut), ("corrupt", bad)):
                 jobs.append(p + be.encode(txt))
-                budgets.append(budget)
+                budgets.append(max(64, min(a.max_new, budget, max_len - len(jobs[-1]) - 64)))
                 meta.append(dict(id=r["id"], dataset=r["dataset"], category=classify(r), pos=pos, cond=cond,
                                  stab=round(stab, 4), after_stab=pos >= stab,
                                  orig_answer=r["probes"][-1]["ans"], gold=r["gold"]))
     print(f"{len(chosen)} traces, {len(jobs)} continuations", flush=True)
     outs = be.continue_from(jobs, max_tokens=budgets, seed=a.seed + 7)
+    # A continuation that runs out of tokens before boxing an answer gets the same forced probe as
+    # the trajectories, so every row has an answer; `forced` marks these rows.
+    fix = []
+    for i, (m, o) in enumerate(zip(meta, outs)):
+        text = be.decode(o)
+        m["new_tokens"] = len(o)
+        m["answer"] = extract_boxed(text.split("</think>")[-1]) if "</think>" in text else None
+        m["forced"] = m["answer"] is None
+        if m["forced"]:
+            sfx = PROBE_SUFFIX if "</think>" not in text else "\n\nThe final answer is $\\boxed{"
+            fix.append((i, (jobs[i] + o + be.encode(sfx))[-(max_len - 48):]))
+    if fix:
+        for (i, _), (ids, lps) in zip(fix, be.probe([f for _, f in fix])):
+            meta[i]["answer"] = answer_from_probe(be, ids, lps)[0]
     with open(os.path.join(a.run, "intervene.jsonl"), "w") as f:
-        for m, o in zip(meta, outs):
-            text = be.decode(o)
-            m["answer"] = extract_boxed(text.split("</think>")[-1]) if "</think>" in text else None
-            m["new_tokens"] = len(o)
+        for m in meta:
             f.write(json.dumps(m) + "\n")
     print(f"wrote {len(meta)} rows")
 

@@ -305,7 +305,7 @@ def summarize_intervene(path: str) -> dict:
         for cond in ("clean", "corrupt"):
             sub = [r for r in rows if sel(r) and r["cond"] == cond]
             d[cond] = dict(n=len(sub), changed=round(sum(map(changed, sub)) / max(len(sub), 1), 4),
-                           unfinished=round(sum(r["answer"] is None for r in sub) / max(len(sub), 1), 4),
+                           forced=round(sum(r.get("forced", r["answer"] is None) for r in sub) / max(len(sub), 1), 4),
                            correct=round(sum(r["answer"] is not None and GRADE(r["answer"], r["gold"]) for r in sub)
                                          / max(len(sub), 1), 4))
         d["effect"] = round(d["corrupt"]["changed"] - d["clean"]["changed"], 4)
