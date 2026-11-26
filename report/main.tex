@@ -40,12 +40,12 @@ token is paid for in latency. Their behaviour may differ: they are weaker, so fe
 answer, and they are known to loop. Whether overthinking at small scale is mostly \emph{wasted} or mostly
 \emph{harmful} is an empirical question we could not find answered.
 
-We therefore ask three questions. First (RQ1), how often do 0.6B--4B reasoning models reach a correct intermediate
-answer and end with a wrong one, and how does this depend on model size and problem difficulty? Second (RQ2), how close
-do simple, training-free stopping rules based on a fixed budget, answer consistency or answer confidence get to an
-oracle that stops at the first correct answer, when their thresholds are chosen without test labels? Third (RQ3), is
-the thinking after the answer stabilises still causally used? To answer it we change a number in the trace before and
-after that point and measure whether the final answer follows.
+We study three questions. The first is how often 0.6B--4B reasoning models reach a correct intermediate answer and
+still end with a wrong one, and how this depends on model size and problem difficulty (RQ1). The second is how close
+simple training-free stopping rules, based on a fixed budget, answer consistency or answer confidence, come to an
+oracle that stops at the first correct answer when their thresholds are chosen without test labels (RQ2). The third is
+whether the thinking after the answer stabilises is still causally used, which we test by changing a number in the
+trace before and after that point (RQ3).
 
 We record answer trajectories for 6{,}360 thinking traces of three small Qwen3 models on
 GSM8K, MATH-500 and AIME, and release them with the code. We find that correct-then-wrong traces fall from 5.7\% at
