@@ -16,6 +16,13 @@ def pct(x):
     return f"{100 * x:.1f}".replace("-0.0", "0.0")
 
 
+def signed(x):
+    """+1.2 / $-$1.2 / 0.0 with a true minus sign."""
+    if round(x, 1) == 0:
+        return "0.0"
+    return f"+{x:.1f}" if x > 0 else f"$-${-x:.1f}"
+
+
 def table_outcomes(S):
     rows = [r"\begin{tabular}{llrrrrrr}", r"\toprule",
             r"Model & Data & Acc. & Oracle & Flip & Never & Tokens & Oracle tok. \\", r"\midrule"]
@@ -63,7 +70,11 @@ def table_predictors(S):
         vals = []
         for m in ms:
             p = S[m]["all"]["flip_predictors"].get(f)
-            vals.append("--" if p is None else f"{p['auc_flip_vs_kept']:.2f}")
+            if p is None:
+                vals.append("--")
+            else:  # report AUC in the direction that separates; a down-arrow means low values predict a flip
+                a_ = p["auc_flip_vs_kept"]
+                vals.append(f"{a_:.2f}" if a_ >= 0.5 else f"{1 - a_:.2f}\\,$\\downarrow$")
         rows.append(f"{names[f]} & " + " & ".join(vals) + r" \\")
     nflip = " & ".join(str(S[m]["all"]["flip_predictors"]["difficulty_level"]["n_flip"]) for m in ms)
     rows += [r"\midrule", f"\\# flip traces & {nflip} \\\\", r"\bottomrule", r"\end{tabular}"]
@@ -85,7 +96,7 @@ def table_commitment(S):
             blocks += [("before stabil.", iv["before_stabilization"]), ("after stabil.", iv["after_stabilization"])]
         for i, (name, d) in enumerate(blocks):
             rows.append(f"{LABEL.get(m, m) if i == 0 else ''} & {name} & {d['corrupt']['n']} & "
-                        f"{pct(d['clean']['changed'])} & {pct(d['corrupt']['changed'])} & {100 * d['effect']:+.1f} \\\\")
+                        f"{pct(d['clean']['changed'])} & {pct(d['corrupt']['changed'])} & {signed(100 * d['effect'])} \\\\")
         rows.append(r"\midrule")
     rows[-1] = r"\bottomrule"
     rows.append(r"\end{tabular}")
