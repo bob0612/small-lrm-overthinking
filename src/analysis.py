@@ -30,6 +30,14 @@ def load_traces(run_dir: str) -> list[dict]:
                 p["ok"] = GRADE(p["ans"], r["gold"])
                 p["conf"] = math.exp(p["logp"]) if p["ans"] is not None else 0.0
             r["natural_ok"] = GRADE(r["natural_answer"], r["gold"]) if r["natural_answer"] else r["probes"][-1]["ok"]
+            # The forced probe at the end of thinking is a noisy reading of the model's answer (small
+            # models sometimes drop a sign or a root when forced to box at once). When the model wrote
+            # its own boxed answer after </think>, that answer is what full thinking returns, so it
+            # replaces the last probe. We keep the forced one to measure probe noise.
+            last = r["probes"][-1]
+            r["end_probe_ok"] = last["ok"]
+            if r["natural_answer"] is not None and not r["truncated"]:
+                last["ans"], last["ok"] = r["natural_answer"], r["natural_ok"]
             out.append(r)
     return out
 
@@ -179,7 +187,7 @@ def flip_predictors(traces):
         f = {
             "conf_at_first_correct": ps[j]["conf"],
             "relative_position": ps[j]["t"] / max(ps[-1]["t"], 1),
-            "same_as_previous_probe": float(j > 0 and ps[j - 1]["ans"] == ps[j]["ans"]),
+            "distinct_answers_so_far": float(len({p["ans"] for p in ps[: j + 1]})),
             "hesitations_per_1k_tokens_so_far": 1000 * ps[j]["n_hes"] / max(ps[j]["t"], 1),
             "difficulty_level": r.get("level", 0),
         }
@@ -224,6 +232,9 @@ def summarize(traces):
     wasted = [1 - (first_correct_t(r) / max(r["probes"][-1]["t"], 1)) for r in traces if classify(r) in ("kept", "late")]
     return dict(
         n_traces=n, n_problems=len({r["id"] for r in traces}),
+        probe_noise_at_end=round(sum(r["end_probe_ok"] != r["natural_ok"] for r in traces
+                                     if r["natural_answer"] is not None and not r["truncated"]) /
+                                 max(sum(r["natural_answer"] is not None and not r["truncated"] for r in traces), 1), 4),
         acc_end=round(base[0], 4), acc_end_ci=[round(x, 4) for x in bootstrap_ci(traces, lambda s: baseline(s)[0])],
         acc_natural=round(sum(r["natural_ok"] for r in traces) / n, 4),
         tokens_end=round(base[1], 1), truncated=round(sum(r["truncated"] for r in traces) / n, 4),

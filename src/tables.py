@@ -47,9 +47,9 @@ def table_cv(S):
 
 
 def table_predictors(S):
-    feats = ["conf_at_first_correct", "same_as_previous_probe", "relative_position",
+    feats = ["conf_at_first_correct", "distinct_answers_so_far", "relative_position",
              "hesitations_per_1k_tokens_so_far", "difficulty_level"]
-    names = {"conf_at_first_correct": "Answer confidence", "same_as_previous_probe": "Repeats previous answer",
+    names = {"conf_at_first_correct": "Answer confidence", "distinct_answers_so_far": "Distinct answers so far",
              "relative_position": "Relative position", "hesitations_per_1k_tokens_so_far": "Hesitations / 1k tok.",
              "difficulty_level": "Difficulty level"}
     ms = list(S)
