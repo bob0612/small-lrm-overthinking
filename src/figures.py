@@ -13,8 +13,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+# Match the paper's Times body text.
+plt.rcParams.update({"font.family": "serif", "font.serif": ["STIXGeneral", "Times New Roman", "DejaVu Serif"],
+                     "mathtext.fontset": "stix", "font.size": 8, "axes.labelsize": 8, "legend.fontsize": 7,
+                     "xtick.labelsize": 7, "ytick.labelsize": 7, "pdf.fonttype": 42})
+
 COLORS = {"qwen3-0.6b": "#4C72B0", "qwen3-1.7b": "#DD8452", "qwen3-4b": "#55A868"}
 LABEL = {"qwen3-0.6b": "Qwen3-0.6B", "qwen3-1.7b": "Qwen3-1.7B", "qwen3-4b": "Qwen3-4B"}
+RULE_NAME = {"fixed": "Fixed budget", "consistency": "Consistency", "confidence": "Confidence", "cons+conf": "Consistency + confidence"}
 RULE_MARK = {"fixed": "s", "consistency": "o", "confidence": "^", "cons+conf": "D"}
 
 
@@ -36,8 +42,8 @@ def fig_trajectory(S, split, path):
         xs = [i / (len(tr) - 1) for i in range(len(tr))]
         ax.plot(xs, [100 * v for v in tr], color=COLORS.get(m), label=LABEL.get(m, m), lw=1.6)
         ax.axhline(100 * res[split]["acc_oracle"], color=COLORS.get(m), ls=":", lw=1)
-    ax.set_xlabel("fraction of thinking completed")
-    ax.set_ylabel("accuracy (%)")
+    ax.set_xlabel("Fraction of thinking completed")
+    ax.set_ylabel("Accuracy (%)")
     ax.legend(frameon=False, fontsize=7, loc="lower right")
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -56,17 +62,17 @@ def fig_pareto(S, split, path):
         for kind, mk in RULE_MARK.items():
             pts = [(x["tokens"] / base_t, 100 * x["acc"]) for x in r["rules"] if x["rule"] == kind]
             fr = pareto(pts)
-            ax.plot([p[0] for p in fr], [p[1] for p in fr], marker=mk, ms=3, lw=1, label=kind)
-        ax.scatter([1.0], [base_a], color="k", zorder=5, s=18, label="full thinking")
+            ax.plot([p[0] for p in fr], [p[1] for p in fr], marker=mk, ms=3, lw=1, label=RULE_NAME[kind])
+        ax.scatter([1.0], [base_a], color="k", zorder=5, s=18, label="Full thinking")
         ax.scatter([r["tokens_oracle"] / base_t], [100 * r["acc_oracle"]], color="r", marker="*", s=50, zorder=5,
-                   label="oracle stop")
+                   label="Oracle stop")
         cv = r["cv"]
         ax.scatter([cv["tokens"] / base_t], [100 * cv["acc"]], color="purple", marker="X", s=40, zorder=6,
                    label="CV-selected rule")
         ax.set_title(LABEL.get(m, m), fontsize=9)
-        ax.set_xlabel("thinking tokens (× full)")
+        ax.set_xlabel("Thinking tokens (relative to full)")
         ax.grid(alpha=0.3)
-    axes[0].set_ylabel("accuracy (%)")
+    axes[0].set_ylabel("Accuracy (%)")
     axes[-1].legend(frameon=False, fontsize=6, loc="lower right")
     fig.tight_layout()
     fig.savefig(path)
@@ -82,7 +88,7 @@ def fig_flip_by_level(S, path):
                label=LABEL.get(m, m))
     ax.set_xlabel("MATH-500 difficulty level")
     ax.set_xticks(range(1, 6))
-    ax.set_ylabel("flip traces (%)")
+    ax.set_ylabel("Flip rate (%)")
     ax.legend(frameon=False, fontsize=7)
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
