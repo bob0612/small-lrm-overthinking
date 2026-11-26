@@ -1,0 +1,141 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{graphicx,booktabs,amsmath,amssymb,url,xcolor,multirow}
+\usepackage[hidelinks]{hyperref}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\repo}{\url{https://github.com/bob0612/small-lrm-overthinking}}
+
+\begin{document}
+\title{Thinking Past the Answer at Small Scale:\\Correct-then-Wrong Reasoning and Label-Free Stopping in 0.6B--4B Reasoning Models}
+\author{\IEEEauthorblockN{\todo{Full name}}\IEEEauthorblockA{Student ID 3036797441\\The University of Hong Kong}}
+\maketitle
+
+\begin{abstract}
+Reasoning models often keep thinking after they already hold the right answer, and sometimes talk themselves out of it.
+Recent work measures this ``harmful overthinking'' and the room for early stopping on models of 4B parameters and up,
+using the gold answer to decide where an ideal stop would be. We ask two questions at the small end of the scale, where
+such models are actually deployed on cheap hardware: how often do Qwen3-0.6B, 1.7B and 4B in thinking mode reach a
+correct answer and then abandon it, and how much of the gap to an oracle stopping point can a rule recover that uses no
+gold answer and no training? We force an answer every $\sim$128 thinking tokens on GSM8K, MATH-500 and AIME
+2024/25 \todo{N} traces, and evaluate fixed budgets, answer-consistency and answer-confidence rules with thresholds
+chosen by grouped cross-validation. \todo{key numbers}. Code, data and all traces: \repo.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+Thinking-mode language models solve harder problems by writing long chains of thought before answering. The cost is
+length: on easy problems they spend thousands of tokens after the answer is already settled
+\cite{chen2024overthinking,sui2025stop}. Worse, extra thinking is not always neutral. Caldarella et al.\ show that
+stopping at the first correct prefix would raise Qwen3's AIME2025 accuracy from 58.3\% to 91.7\%
+\cite{caldarella2026thinking}, and Guan et al.\ find that full thinking is 9.03 points less accurate than the earliest
+accuracy peak along the trajectory, averaged over six models \cite{guan2026pareto}. Both papers leave open the practical
+question: a stopping policy that does not know the gold answer.
+
+These studies, and most early-exit methods \cite{liu2025convergence,zhang2025know,scalena2026commitment}, use models
+of 4B--70B parameters. Small reasoning models (under 2B) are the ones most often run on laptops and phones, where every
+token is paid for in latency. Their behaviour may differ: they are weaker, so fewer traces ever reach a correct
+answer, and they are known to loop. Whether overthinking at small scale is mostly \emph{wasted} or mostly
+\emph{harmful} is an empirical question we could not find answered.
+
+\textbf{Research questions.}
+\begin{itemize}
+\item[\textbf{RQ1}] How often do 0.6B--4B reasoning models reach a correct intermediate answer and end with a wrong one,
+and how does this depend on model size and problem difficulty?
+\item[\textbf{RQ2}] How close do simple, training-free stopping rules (fixed budget, answer consistency, answer
+confidence) get to an oracle that stops at the first correct answer, when their thresholds are chosen without test
+labels?
+\item[\textbf{RQ3}] Is the thinking after the answer stabilises still causally used? We change a number in the trace
+before and after that point and measure whether the final answer follows.
+\end{itemize}
+
+\textbf{Contributions.} \todo{after results}
+
+\section{Related Work}
+\label{sec:related}
+\textbf{Overthinking and efficient reasoning.} Surveys organise efficient-reasoning methods into model-, output- and
+prompt-based approaches \cite{sui2025stop}. Budget forcing caps or extends thinking by editing the trace
+\cite{muennighoff2025s1}. Guan et al.\ build offline Pareto frontiers of termination methods for six models and show
+that dynamic early exit needs only 14.2\% of the budget to match full-thinking accuracy, while public online methods
+stay below their frontiers \cite{guan2026pareto}. Caldarella et al.\ separate verbose from harmful overthinking and note
+that practical policies without ground truth remain open \cite{caldarella2026thinking}.
+
+\textbf{Signals for stopping.} Liu and Wang stop when intermediate answers converge and cut 40\% of tokens on NQ, but
+report that convergence is not correctness on GPQA and AIME \cite{liu2025convergence}. Hidden-state probes predict
+correctness with ROC-AUC above 0.7 and enable 24\% savings at equal accuracy \cite{zhang2025know}; a probe on Qwen3-8B
+predicts the final outcome from the first few tokens \cite{david2025temporal}. These probes need training data and
+access to activations; our rules need neither.
+
+\textbf{Faithfulness of reasoning.} Interventions on chains of thought test whether the answer depends on them
+\cite{lanham2023faithfulness}. Scalena et al.\ find a commitment boundary after which corrupting numbers leaves the
+answer unchanged in 95\% of runs, in 14B--26B models with greedy decoding \cite{scalena2026commitment}. Monitorability
+of reasoning is now treated as a safety property \cite{korbak2025monitorability}. We repeat the corruption test at
+0.6B--4B with sampling and a clean-resampling control.
+
+\section{Method}
+\label{sec:method}
+\subsection{Answer trajectories}
+For a problem $x$ we sample one thinking trace $z = (z_1,\dots,z_L)$ ending at the \texttt{</think>} token (or at the
+cap of 8{,}192 tokens). We choose probe points $t_1<\dots<t_m=L$ roughly every 128 tokens, moved back to the nearest
+line end so that a probe never splits a sentence. At each $t_j$ we feed
+$x \,\|\, z_{1:t_j} \,\|$ \texttt{</think>}\,\texttt{The final answer is \$\textbackslash boxed\{} and decode greedily
+until the box closes. This gives an answer $a_j$, its probability $c_j=\prod p(\text{answer tokens})$, and the number of
+hesitation words (``wait'', ``hmm'', \dots) so far. With prefix caching \cite{vllm} each probe only costs the new
+tokens. The sequence $(a_j, c_j)_{j=1}^m$ is the \emph{answer trajectory}; $a_m$ is what the model would answer at its own
+stopping point.
+
+\subsection{Outcome categories}
+Let $y_j=\mathbb{1}[a_j \text{ is correct}]$. A trace is \emph{never} correct if all $y_j=0$; \emph{kept} if $y_m=1$ and
+some earlier $y_j=1$; \emph{late} if only $y_m=1$; and \emph{flip} (correct-then-wrong, harmful overthinking) if some
+$y_j=1$ but $y_m=0$. The \emph{oracle stop} answers at the first correct probe, which upper-bounds any stopping rule
+that only chooses among probed answers.
+
+\subsection{Stopping rules}
+A rule sees $(a_i,c_i,t_i)_{i\le j}$ and decides whether to stop at $t_j$, answering $a_j$:
+\begin{itemize}
+\item \textbf{Fixed budget} $B$: stop at the first $t_j\ge B$.
+\item \textbf{Consistency} $(k, t_{\min})$: stop when the last $k$ answers agree and $t_j\ge t_{\min}$.
+\item \textbf{Confidence} $\tau$: stop when $c_j\ge\tau$.
+\item \textbf{Consistency + confidence} $(k,\tau)$: both.
+\end{itemize}
+A rule that never fires answers $a_m$. Cost is the number of thinking tokens used.
+
+\subsection{Selecting thresholds without test labels}
+We split problems into five folds, grouping both samples of a problem in the same fold. On four folds we pick the rule
+with the fewest tokens whose accuracy is within 0.5 points of full thinking on those folds, and report its accuracy and
+tokens on the held-out fold. This is the deployment question: \emph{if I tune a stopping rule on some labelled problems,
+what do I save on new ones?}
+
+\subsection{Commitment test}
+For a sample of traces in each category we cut the thinking at 25/50/75/90\% of its length, change the last number in
+the cut (e.g.\ $x\to x\pm d$ or $2x$), and sample a continuation. A clean continuation from the same cut is the control,
+since sampling alone changes answers. The causal dependence at a position is the difference between how often the
+final answer changes under corruption and under clean resampling.
+
+\section{Experimental Setup}
+\label{sec:setup}
+\textbf{Models.} Qwen3-0.6B, 1.7B and 4B \cite{qwen3} in thinking mode, bf16, sampling with the recommended
+temperature 0.6, top-$p$ 0.95, top-$k$ 20; two samples per problem. \textbf{Data.} 500 problems sampled from the GSM8K test
+set \cite{gsm8k} (seed 0), MATH-500 \cite{math,lightman2024verify} and the 60 AIME 2024/2025 problems. Answers are
+compared after normalisation and with \texttt{math-verify}. \textbf{Compute.} One NVIDIA A40 (48\,GB) rented for
+\todo{h} hours (\todo{\$}), vLLM 0.11.0. \todo{exact model commits from config.json}.
+
+\section{Results}
+\label{sec:results}
+\todo{RQ1 table: acc end / oracle / flip rate per model and dataset}
+\todo{Fig trajectory}
+\todo{RQ2 Pareto figure and CV table}
+\todo{RQ3 commitment table}
+
+\section{Discussion and Limitations}
+\label{sec:limits}
+\todo{}
+
+\section{Conclusion}
+\todo{}
+
+\section*{Reproducibility and AI Use}
+All code, the exact commands, per-trace outputs and the analysis are in \repo. AI coding assistance (Claude, Anthropic)
+was used for code and drafting; all numbers come from the scripts in the repository.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}

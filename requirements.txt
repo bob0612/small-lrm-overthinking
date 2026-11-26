@@ -5,3 +5,4 @@ math-verify[antlr4_13_2]==0.8.0
 numpy
 matplotlib
 pytest
+hf_transfer            # the RunPod image sets HF_HUB_ENABLE_HF_TRANSFER=1

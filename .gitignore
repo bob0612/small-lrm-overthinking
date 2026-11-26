@@ -3,3 +3,10 @@ __pycache__/
 .pytest_cache/
 results/**/traces.jsonl
 results/log-*.txt
+report/*.aux
+report/*.log
+report/*.bbl
+report/*.blg
+report/*.fls
+report/*.fdb_latexmk
+report/*.out
