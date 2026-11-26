@@ -13,7 +13,7 @@ DS = [("gsm8k", "GSM8K"), ("math500", "MATH-500"), ("aime", "AIME"), ("all", "Al
 
 
 def pct(x):
-    return f"{100 * x:.1f}"
+    return f"{100 * x:.1f}".replace("-0.0", "0.0")
 
 
 def table_outcomes(S):
@@ -35,13 +35,17 @@ def table_outcomes(S):
 
 
 def table_cv(S):
-    rows = [r"\begin{tabular}{lrrrrr}", r"\toprule",
-            r"Model & Full acc. & Full tok. & Rule acc. & Rule tok. & Saved \\", r"\midrule"]
+    """Held-out accuracy and thinking tokens of the CV-selected rule at two accuracy tolerances."""
+    rows = [r"\begin{tabular}{lrrrrrr}", r"\toprule",
+            r" & \multicolumn{2}{c}{Full thinking} & \multicolumn{2}{c}{Oracle stop} & \multicolumn{2}{c}{CV rule (acc. / saved)} \\",
+            r"Model & Acc. & Tok. & Acc. & Saved & $\le$0.5\,pp & $\le$2\,pp \\", r"\midrule"]
     for m, res in S.items():
         r = res["all"]
-        cv = r["cv"]
-        rows.append(f"{LABEL.get(m, m)} & {pct(r['acc_end'])} & {r['tokens_end']:.0f} & {pct(cv['acc'])} & "
-                    f"{cv['tokens']:.0f} & {pct(1 - cv['tokens'] / r['tokens_end'])}\\% \\\\")
+        full = r["tokens_end"]
+        cv1, cv2 = r["cv"], r.get("cv_by_tolerance", {}).get("0.02", r["cv"])
+        rows.append(f"{LABEL.get(m, m)} & {pct(r['acc_end'])} & {full:.0f} & {pct(r['acc_oracle'])} & "
+                    f"{pct(1 - r['tokens_oracle'] / full)}\\% & {pct(cv1['acc'])} / {pct(1 - cv1['tokens'] / full)}\\% & "
+                    f"{pct(cv2['acc'])} / {pct(1 - cv2['tokens'] / full)}\\% \\\\")
     rows += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(rows)
 

@@ -23,7 +23,10 @@ GRADE = Grader()
 # ---------------------------------------------------------------- loading
 def load_traces(run_dir: str) -> list[dict]:
     out = []
-    with open(os.path.join(run_dir, "traces.jsonl")) as f:
+    path = os.path.join(run_dir, "traces.jsonl")
+    if not os.path.exists(path):  # the copy in git drops the thinking text to stay small
+        path = os.path.join(run_dir, "traces_probes.jsonl")
+    with open(path) as f:
         for line in f:
             r = json.loads(line)
             for p in r["probes"]:
@@ -246,6 +249,7 @@ def summarize(traces):
         mean_wasted_fraction_after_first_correct=round(sum(wasted) / max(len(wasted), 1), 4),
         rules=curve,
         cv=cv_select(traces, rules),
+        cv_by_tolerance={str(t): cv_select(traces, rules, tol=t) for t in (0.01, 0.02, 0.05)},
         flip_predictors=flip_predictors(traces),
         trajectory=trajectory_curve(traces),
     )

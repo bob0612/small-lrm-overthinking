@@ -1,0 +1,17 @@
+{
+ "model": "Qwen/Qwen3-1.7B",
+ "revision": null,
+ "datasets": [
+  "gsm8k",
+  "math500",
+  "aime"
+ ],
+ "limit": 500,
+ "n": 2,
+ "max_think": 8192,
+ "every": 128,
+ "seed": 0,
+ "out": "results/qwen3-1.7b",
+ "resolved_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+ "vllm_version": "0.11.0"
+}

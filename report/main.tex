@@ -122,10 +122,108 @@ compared after normalisation and with \texttt{math-verify}. \textbf{Compute.} On
 
 \section{Results}
 \label{sec:results}
-\todo{RQ1 table: acc end / oracle / flip rate per model and dataset}
-\todo{Fig trajectory}
-\todo{RQ2 Pareto figure and CV table}
-\todo{RQ3 commitment table}
+Each model produced 2{,}120 traces (1{,}060 problems $\times$ 2 samples). Table~\ref{tab:outcomes} gives accuracy,
+the oracle and the outcome categories; Fig.~\ref{fig:traj} shows how the forced answer improves along the trace.
+
+\begin{table}[t]
+\centering
+\caption{Accuracy of full thinking (the model's own answer), accuracy of the oracle that stops at the first correct
+probe, share of correct-then-wrong (flip) and never-correct traces, and mean thinking tokens. All numbers in \%, except
+tokens.}
+\label{tab:outcomes}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\input{tables/outcomes.tex}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\columnwidth]{figures/trajectory.pdf}
+\caption{Accuracy of the forced answer against the fraction of the trace completed (all datasets). Dotted lines:
+oracle stop. Larger models reach most of their final accuracy in the first half of the trace.}
+\label{fig:traj}
+\end{figure}
+
+\subsection{RQ1: harmful overthinking is rare and shrinks with scale; wasted thinking grows}
+Correct-then-wrong traces exist at every size but are a small minority: 5.7\% of all traces for 0.6B (95\% CI
+4.7--6.8), 2.6\% for 1.7B (1.9--3.4) and 1.7\% for 4B (1.1--2.4). As a share of traces that were ever correct this is
+7.4\%, 2.9\% and 1.8\%. The flip rate thus falls by a factor of three from 0.6B to 4B, while accuracy rises from 71.6\%
+to 92.0\%. Stopping at the first correct probe would add 5.7, 2.6 and 1.7 points (Table~\ref{tab:outcomes}); these
+gains are smaller than the 9--33 points reported for larger models on AIME \cite{guan2026pareto,caldarella2026thinking},
+largely because most of our problems are easier and a weak model's errors are mostly \emph{never} correct (22.7\% of
+0.6B traces) rather than flips.
+
+The waste is a different story. On traces that are ever correct, 57\%, 70\% and 75\% of the thinking comes after the
+first correct probe, and the oracle would use 36\%, 54\% and 63\% fewer tokens. Larger models reach the answer earlier
+(Fig.~\ref{fig:traj}: at half the trace 4B's forced answer is already 81\% accurate, 0.6B's only 42\%) but do not stop
+earlier: all three spend about 3{,}000--3{,}200 tokens on average. Overthinking at this scale is therefore mostly
+\emph{wasted}, and increasingly so with size, while \emph{harmful} overthinking is concentrated in the smallest model.
+
+Within MATH-500, the 0.6B flip rate is highest on level-5 problems (11.6\% against 4.8--6.7\% for levels 1--4;
+Fig.~\ref{fig:level}); for 1.7B and 4B the rate stays at or below 3.5\% at every level. On GSM8K, which is easy for all
+three models, flips still occur in 4.3\%, 2.9\% and 1.9\% of traces. AIME traces are mostly truncated at our 8{,}192-token
+cap (79\% for 1.7B), so we do not interpret the AIME rows.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\columnwidth]{figures/flip_by_level.pdf}
+\caption{Flip rate by MATH-500 difficulty level.}
+\label{fig:level}
+\end{figure}
+
+\textbf{What predicts a flip?} Table~\ref{tab:pred} compares signals available at the first correct probe, without the
+gold answer, between flip and kept traces. The strongest is the probability the model assigns to its forced answer:
+flips start from a less confident correct answer (mean 0.45 vs 0.72 for 0.6B), giving an AUC of 0.75 for 0.6B when
+read in that direction, falling to 0.58 for 4B. Flips also find the correct answer \emph{earlier} in the trace (AUC
+0.71 for 0.6B, reversed), so a lucky early guess is more fragile than a derived one. Hesitation words separate the
+classes only for 4B (AUC 0.64), and the number of distinct earlier answers is uninformative at all sizes.
+
+\begin{table}[t]
+\centering
+\caption{Separating flip from kept traces at their first correct probe: AUC of each signal (0.5 = chance; values
+below 0.5 mean low values predict a flip).}
+\label{tab:pred}
+\scriptsize
+\input{tables/predictors.tex}
+\end{table}
+
+\subsection{RQ2: label-free rules recover little of the oracle's savings}
+Fig.~\ref{fig:pareto} plots each rule family's accuracy--token frontier against full thinking and the oracle, and
+Table~\ref{tab:cv} gives the held-out result of tuning thresholds by grouped cross-validation. The oracle sits far above
+every frontier: it is both more accurate than full thinking and 36--63\% cheaper. No rule matches full thinking
+accuracy within 0.5 points at any meaningful saving: even in-sample, every rule that saves tokens loses more than half a
+point on the pooled data, and under cross-validation the selected rule saves 2.1\%, 0.0\% and 4.7\% of tokens. Allowing a
+2-point loss, cross-validation selects a 4{,}096-token budget for 0.6B (27.5\% saved, $-1.7$ points) and
+consistency-plus-confidence rules for 1.7B and 4B (11.7\% and 21.8\% saved, $-1.6$ and $-1.8$ points).
+
+The rules do better on easy data. On GSM8K alone, the 0.5-point setting saves 17\%, 14\% and 23\% of tokens, and the
+2-point setting 28\%, 31\% and 47\%. On MATH-500 the 0.5-point setting saves nothing for 1.7B and 4B. Answer
+confidence alone is the weakest family: its frontier lies well below the others for every model, because a
+small model is often confidently wrong early in the trace. Consistency rules fail in a related way: the early answers
+of a hard problem can agree with each other and still be wrong, which is exactly the failure mode reported for larger
+models on AIME and GPQA \cite{liu2025convergence}.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/pareto.pdf}
+\caption{Accuracy against mean thinking tokens (relative to full thinking) for the Pareto frontier of each rule
+family, pooled over datasets. Black: full thinking. Red star: oracle stop at the first correct probe. Purple: the
+rule chosen by grouped 5-fold cross-validation (held-out).}
+\label{fig:pareto}
+\end{figure*}
+
+\begin{table}[t]
+\centering
+\caption{Held-out effect of the cross-validated rule, at two accuracy tolerances used for selection. ``Saved'' is
+the share of thinking tokens saved relative to full thinking.}
+\label{tab:cv}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\input{tables/cv.tex}
+\end{table}
+
+\subsection{RQ3: the thinking after the answer settles is still used}
+\todo{commitment results}
 
 \section{Discussion and Limitations}
 \label{sec:limits}
@@ -133,7 +231,7 @@ compared after normalisation and with \texttt{math-verify}. \textbf{Compute.} On
 
 \textbf{Probes are a reading, not the model's answer.} A forced answer is what the model writes when made to stop,
 which is the right quantity for a stopping rule but can differ from what it would write after a natural stop. At the
-end of thinking, where both exist, they disagree on \todo{x}\% of traces (mostly format: a dropped sign or root). We
+end of thinking, where both exist, they disagree on 4.2\%, 1.1\% and 0.5\% of traces for 0.6B, 1.7B and 4B (8.4\% on MATH-500 for 0.6B), mostly in format: a dropped sign or square root, or a different number from the forced reading. We
 therefore count harmful overthinking only when an intermediate probe is correct, and use the model's own answer at the
 end; residual probe noise can still create spurious ``correct'' intermediate probes, so our flip rates are upper bounds
 on genuine answer reversals.
