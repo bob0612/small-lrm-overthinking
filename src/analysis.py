@@ -259,10 +259,43 @@ def main():
                 if sub:
                     s = summarize(sub)
                     res[f"math500-L{lv}"] = {k: s[k] for k in ("n_traces", "acc_end", "acc_oracle", "flip_rate", "tokens_end")}
+        stab = [stabilization_fraction(r) for r in tr]
+        res["all"]["mean_stabilization_fraction"] = round(sum(stab) / len(stab), 4)
+        ip = os.path.join(rd, "intervene.jsonl")
+        if os.path.exists(ip):
+            res["intervene"] = summarize_intervene(ip)
         allres[name] = res
         print(name, json.dumps({k: res["all"][k] for k in ("acc_end", "acc_oracle", "flip_rate", "tokens_end", "tokens_oracle", "cv")}))
     with open(os.path.join(a.out, "summary.json"), "w") as f:
         json.dump(allres, f, indent=1)
+
+
+
+# ---------------------------------------------------------------- commitment test
+def stabilization_fraction(r: dict) -> float:
+    """Fraction of thinking after which every probed answer equals the final one."""
+    ps = r["probes"]
+    final = ps[-1]["ans"]
+    j = len(ps) - 1
+    while j > 0 and ps[j - 1]["ans"] == final:
+        j -= 1
+    return ps[j]["t"] / max(ps[-1]["t"], 1)
+
+
+def summarize_intervene(path: str) -> dict:
+    """P(final answer changes) under corruption vs clean resampling, per relative position."""
+    rows = [json.loads(line) for line in open(path)]
+    out = {}
+    for pos in sorted({r["pos"] for r in rows}):
+        d = {}
+        for cond in ("clean", "corrupt"):
+            sub = [r for r in rows if r["pos"] == pos and r["cond"] == cond]
+            ch = [not (r["answer"] is not None and r["orig_answer"] is not None and GRADE(r["answer"], r["orig_answer"]))
+                  for r in sub]
+            d[cond] = dict(n=len(sub), changed=round(sum(ch) / max(len(sub), 1), 4))
+        d["effect"] = round(d["corrupt"]["changed"] - d["clean"]["changed"], 4)
+        out[str(pos)] = d
+    return out
 
 
 if __name__ == "__main__":

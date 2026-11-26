@@ -48,3 +48,26 @@ def test_end_to_end(tmp_path):
     acc2, _ = A.evaluate(tr, A.rule_cons(2))
     assert acc2 <= acc
     assert "acc" in s["cv"]
+
+
+def test_reports(tmp_path):
+    from src import tables, figures
+    be = FakeBackend(SCRIPTS)
+    rd = tmp_path / "qwen3-0.6b"
+    R.run(be, make_items(), str(rd), n=2, max_think=10_000, every=8, seed=0, log=lambda *_: None)
+    with open(rd / "intervene.jsonl", "w") as f:
+        for pos in (0.5, 0.9):
+            for cond, ans in (("clean", "5"), ("corrupt", "6")):
+                f.write(json.dumps(dict(id="p-0", pos=pos, cond=cond, answer=ans, orig_answer="5")) + "\n")
+    import subprocess, sys as _s
+    out = tmp_path / "summary"
+    subprocess.run([_s.executable, "-m", "src.analysis", str(rd), "--out", str(out)], check=True,
+                   cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    S = json.load(open(out / "summary.json"))
+    assert S["qwen3-0.6b"]["intervene"]["0.5"]["effect"] == 1.0
+    _s.argv = ["x", str(out / "summary.json"), "--out", str(tmp_path / "tab")]
+    tables.main()
+    assert "Flip" in open(tmp_path / "tab" / "outcomes.tex").read()
+    _s.argv = ["x", str(out / "summary.json"), "--out", str(tmp_path / "fig")]
+    figures.main()
+    assert (tmp_path / "fig" / "pareto.pdf").exists()
