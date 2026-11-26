@@ -240,7 +240,7 @@ family, pooled over datasets. The CV-selected rule is evaluated on held-out fold
 
 \subsection{Commitment Test}
 For each model we took up to 50 kept, flip and late traces (sample 0, not truncated; 65--109 traces), cut each at
-25/50/75/90\% of its thinking, and continued sampling from the clean cut and from the cut with its last number changed
+25/50/75/90\% of its thinking, and continued sampling from the clean cut and from the cut with its last number changed.
 A continuation that ran out of tokens before boxing an answer was given the same forced probe
 as the trajectories (1--27\% of rows, more often for corrupted cuts). We count the final answer as \emph{changed} when it
 differs from the trace's original answer. Table~\ref{tab:commit} reports the change rate by cut position and by
