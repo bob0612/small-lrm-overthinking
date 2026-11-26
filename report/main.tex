@@ -16,8 +16,12 @@ using the gold answer to decide where an ideal stop would be. We ask two questio
 such models are actually deployed on cheap hardware: how often do Qwen3-0.6B, 1.7B and 4B in thinking mode reach a
 correct answer and then abandon it, and how much of the gap to an oracle stopping point can a rule recover that uses no
 gold answer and no training? We force an answer every $\sim$128 thinking tokens on GSM8K, MATH-500 and AIME
-2024/25 \todo{N} traces, and evaluate fixed budgets, answer-consistency and answer-confidence rules with thresholds
-chosen by grouped cross-validation. \todo{key numbers}. Code, data and all traces: \repo.
+2024/25 (6{,}360 traces), and evaluate fixed budgets, answer-consistency and answer-confidence rules with thresholds
+chosen by grouped cross-validation. Correct-then-wrong traces fall from 5.7\% at 0.6B to 1.7\% at 4B, but the share of
+thinking spent after the first correct answer rises from 57\% to 75\%. An oracle stop would be 1.7--5.7 points more
+accurate and 36--63\% cheaper; the label-free rules save only 0--5\% of tokens at equal accuracy and 12--28\% at a
+2-point loss. A corruption test shows that the answer is locked in once it stabilises and that a single wrong number in
+the trace is absorbed rather than propagated. Code, per-probe data and commands: \repo.
 \end{abstract}
 
 \section{Introduction}
@@ -47,7 +51,13 @@ labels?
 before and after that point and measure whether the final answer follows.
 \end{itemize}
 
-\textbf{Contributions.} \todo{after results}
+\textbf{Contributions.}
+(1) Answer trajectories for 6{,}360 thinking traces of three small Qwen3 models on GSM8K, MATH-500 and AIME, released
+with code and per-probe data. (2) A measurement of harmful versus wasted overthinking at 0.6B--4B: flips are 5.7\% of
+traces at 0.6B and 1.7\% at 4B, while redundant thinking grows to 75\%. (3) A held-out evaluation of training-free
+stopping rules showing that they recover almost none of the oracle's savings at equal accuracy, with an analysis of
+why. (4) A controlled corruption test showing that answers lock in at the stabilisation point and that a single wrong
+number does not propagate.
 
 \section{Related Work}
 \label{sec:related}
@@ -118,7 +128,8 @@ final answer changes under corruption and under clean resampling.
 temperature 0.6, top-$p$ 0.95, top-$k$ 20; two samples per problem. \textbf{Data.} 500 problems sampled from the GSM8K test
 set \cite{gsm8k} (seed 0), MATH-500 \cite{math,lightman2024verify} and the 60 AIME 2024/2025 problems. Answers are
 compared after normalisation and with \texttt{math-verify}. \textbf{Compute.} One NVIDIA A40 (48\,GB) rented for
-\todo{h} hours (\todo{\$}), vLLM 0.11.0. \todo{exact model commits from config.json}.
+9.0 hours (US\$5.3) on RunPod, vLLM 0.11.0. Model commits: 0.6B \texttt{c1899de}, 1.7B \texttt{70d244c}, 4B
+\texttt{1cfa9a7}. Up to 8{,}192 thinking tokens per trace; 11--16\% of traces reach this cap (79\% on AIME for 1.7B).
 
 \section{Results}
 \label{sec:results}
@@ -222,31 +233,89 @@ the share of thinking tokens saved relative to full thinking.}
 \input{tables/cv.tex}
 \end{table}
 
-\subsection{RQ3: the thinking after the answer settles is still used}
-\todo{commitment results}
+\subsection{RQ3: after the answer settles, the rest of the thinking does not move it}
+For each model we took up to 50 kept, flip and late traces (sample 0, not truncated; 65--109 traces), cut each at
+25/50/75/90\% of its thinking, and continued sampling from the clean cut and from the cut with its last number changed
+(Table~\ref{tab:commit}). A continuation that ran out of tokens before boxing an answer was given the same forced probe
+as the trajectories (1--27\% of rows, more often for corrupted cuts). We count the final answer as \emph{changed} when it
+differs from the trace's original answer.
+
+\begin{table}[t]
+\centering
+\caption{Commitment test: share of continuations whose final answer differs from the original trace's answer (\%),
+from a clean cut and from the same cut with its last number changed. Rows split cuts by position and by whether
+the cut is before or after the point from which every probe already equals the final answer.}
+\label{tab:commit}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\input{tables/commitment.tex}
+\end{table}
+
+Two results stand out. First, once the probed answer has reached its final value, resampling the rest of the thinking
+almost never changes it: 6.8\%, 2.5\% and 0.6\% of continuations for 0.6B, 1.7B and 4B, against 28.3\%, 15.8\% and
+8.8\% for cuts before that point. The answer is effectively fixed at the stabilisation point, which comes on average at
+56\%, 43\% and 37\% of the trace, so the remaining 44--63\% of thinking is spent re-checking an answer it will not
+change. Second, changing a number in the trace has little effect beyond resampling. The paired difference in change rate
+(corrupt minus clean, bootstrap 95\% CI over cut pairs) is $-0.5$ points ($-4.3$ to 3.8) for 0.6B, $+4.2$ (0.7 to 8.0)
+for 1.7B and 0.0 ($-2.8$ to 2.8) for 4B; only 1.7B shows a small but significant effect. Pooled accuracy after
+corruption is 3.1, 0.3 and 0.8 points below the clean continuation. The models mostly recompute or ignore a single
+wrong number rather than propagate it. Unlike the
+14B--26B models of Scalena et al.\ \cite{scalena2026commitment}, our models are therefore not \emph{insensitive} to the
+trace only after a commitment point: a single corrupted number is absorbed everywhere, while the answer itself is
+locked in at stabilisation.
+
 
 \section{Discussion and Limitations}
 \label{sec:limits}
-\todo{discussion after all results}
+\textbf{Why do the stopping rules fail where the oracle succeeds?} The oracle's advantage comes from traces whose
+first correct answer is fleeting. Inspecting the 1.7B GSM8K flips, the correct number often appears as one reading of
+an ambiguous question or as an intermediate quantity; the model then settles on another reading and spends the rest of
+the trace confirming it. In one trace the model even verifies the gold value (``Let's say Erika has \$120 in
+savings\dots'') and concludes that the answer is \$350, the total after her income. Such answers are neither stable
+(consistency rules do not fire on them) nor confident (Table~\ref{tab:pred}), so a rule that waits for stability or
+confidence stops on the model's \emph{final} reading, not the correct one. Conversely, on hard problems early answers
+can be consistent and wrong. The oracle--rule gap is therefore not a tuning problem: the signals we use cannot see what
+makes the oracle's answer right.
+
+\textbf{What can be saved?} Stabilisation suggests a different target. Since the final answer is fixed at 37--56\% of
+the trace and never moves afterwards, a rule only has to detect that the \emph{model's own} answer has stopped
+changing, not that it is correct. Our consistency rules approximate this, but they must also guard against early
+consistent guesses, which costs most of the savings on MATH-500. On easy problems (GSM8K) the same rules save 14--23\% of tokens for a
+loss of about 1 point, and 28--47\% for about 2 points, so a deployment that knows the problem is easy, or that routes by an estimate
+of difficulty, can stop early with little risk.
+
+\textbf{Scale.} Harmful overthinking is mainly a problem of the smallest model: at 0.6B one in fourteen ever-correct
+traces ends wrong, and confidence at the first correct answer flags them with AUC 0.75. By 4B flips are rare (1.8\% of
+ever-correct traces) but three quarters of the thinking is redundant. Methods aimed at small models should thus target
+cost rather than accuracy.
+
 
 \textbf{Probes are a reading, not the model's answer.} A forced answer is what the model writes when made to stop,
 which is the right quantity for a stopping rule but can differ from what it would write after a natural stop. At the
 end of thinking, where both exist, they disagree on 4.2\%, 1.1\% and 0.5\% of traces for 0.6B, 1.7B and 4B (8.4\% on MATH-500 for 0.6B), mostly in format: a dropped sign or square root, or a different number from the forced reading. We
-therefore count harmful overthinking only when an intermediate probe is correct, and use the model's own answer at the
-end; residual probe noise can still create spurious ``correct'' intermediate probes, so our flip rates are upper bounds
-on genuine answer reversals.
+therefore use the model's own answer at the end. A forced probe can also output an intermediate quantity that happens to
+equal the gold answer (as in the example above), so our flip rates are upper bounds on genuine reversals of a
+committed answer, and the oracle is optimistic.
 
 \textbf{Scope.} One model family, one sampling setting, two samples per problem, mathematics only, and a probe every
 $\sim$128 tokens (finer probing would only move the oracle earlier). AIME results rest on 60 problems and are mostly
 truncated at 8{,}192 tokens, so we report them but do not draw conclusions from them. Thresholds are tuned per model;
 we did not test transfer across models or datasets. The commitment test changes one number; other corruptions
-(deleting a step, inserting a wrong claim) may give different dependence.
+(deleting a step, inserting a wrong claim) may give different dependence, and its bootstrap treats cut pairs as
+independent although several come from the same trace.
 
 \section{Conclusion}
-\todo{}
+We traced the forced answer of Qwen3 0.6B, 1.7B and 4B every $\sim$128 thinking tokens on 1{,}060 mathematics problems.
+Reaching the right answer and then abandoning it happens in 5.7\% of 0.6B traces and falls to 1.7\% at 4B, while the
+share of thinking spent after the first correct answer grows from 57\% to 75\%. An oracle that stops at the first correct
+answer would be both more accurate and 36--63\% cheaper, but training-free rules based on answer consistency and
+confidence, tuned by cross-validation, recover almost none of this at equal accuracy (0--5\% savings) and 12--28\% at a
+2-point loss. A corruption test shows that the final answer is locked in once the probed answer stabilises and that a
+single wrong number is absorbed rather than propagated. Closing the oracle gap at small scale will need signals that
+see why an answer is right, not only whether it is stable.
 
 \section*{Reproducibility and AI Use}
-All code, the exact commands, per-trace outputs and the analysis are in \repo. AI coding assistance (Claude, Anthropic)
+All code, the exact commands, per-probe outputs of every trace, the commitment-test rows and the analysis are in \repo; every table and figure can be regenerated from them on a CPU. AI coding assistance (Claude, Anthropic)
 was used for code and drafting; all numbers come from the scripts in the repository.
 
 \bibliographystyle{IEEEtran}

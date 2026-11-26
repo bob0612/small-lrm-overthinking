@@ -78,7 +78,9 @@ def table_commitment(S):
         iv = res.get("all", {}).get("intervene") or res.get("intervene")
         if not iv:
             continue
-        blocks = [(f"{float(p):.0%}".replace("%", r"\%"), d) for p, d in iv["by_position"].items()]
+        pos = list(iv["by_position"].items())
+        pos = [pos[0], pos[-1]] if len(pos) > 2 else pos  # earliest and latest cut; all cuts are in summary.json
+        blocks = [(f"cut at {float(p):.0%}".replace("%", r"\%"), d) for p, d in pos]
         if "before_stabilization" in iv:
             blocks += [("before stabil.", iv["before_stabilization"]), ("after stabil.", iv["after_stabilization"])]
         for i, (name, d) in enumerate(blocks):

@@ -2450,6 +2450,147 @@
    "acc_oracle": 0.6007,
    "flip_rate": 0.1157,
    "tokens_end": 5665.0
+  },
+  "intervene": {
+   "by_position": {
+    "0.25": {
+     "clean": {
+      "n": 101,
+      "changed": 0.2871,
+      "forced": 0.1683,
+      "correct": 0.6634
+     },
+     "corrupt": {
+      "n": 101,
+      "changed": 0.2574,
+      "forced": 0.1386,
+      "correct": 0.6832
+     },
+     "effect": -0.0297
+    },
+    "0.5": {
+     "clean": {
+      "n": 105,
+      "changed": 0.2,
+      "forced": 0.1429,
+      "correct": 0.7143
+     },
+     "corrupt": {
+      "n": 105,
+      "changed": 0.1905,
+      "forced": 0.181,
+      "correct": 0.619
+     },
+     "effect": -0.0095
+    },
+    "0.75": {
+     "clean": {
+      "n": 106,
+      "changed": 0.1509,
+      "forced": 0.1321,
+      "correct": 0.6887
+     },
+     "corrupt": {
+      "n": 106,
+      "changed": 0.1604,
+      "forced": 0.1698,
+      "correct": 0.6509
+     },
+     "effect": 0.0095
+    },
+    "0.9": {
+     "clean": {
+      "n": 108,
+      "changed": 0.1111,
+      "forced": 0.1852,
+      "correct": 0.6574
+     },
+     "corrupt": {
+      "n": 108,
+      "changed": 0.1204,
+      "forced": 0.2685,
+      "correct": 0.6481
+     },
+     "effect": 0.0093
+    }
+   },
+   "before_stabilization": {
+    "clean": {
+     "n": 230,
+     "changed": 0.2826,
+     "forced": 0.213,
+     "correct": 0.6957
+    },
+    "corrupt": {
+     "n": 230,
+     "changed": 0.2783,
+     "forced": 0.2348,
+     "correct": 0.6565
+    },
+    "effect": -0.0043
+   },
+   "after_stabilization": {
+    "clean": {
+     "n": 190,
+     "changed": 0.0684,
+     "forced": 0.0895,
+     "correct": 0.6632
+    },
+    "corrupt": {
+     "n": 190,
+     "changed": 0.0632,
+     "forced": 0.1368,
+     "correct": 0.6421
+    },
+    "effect": -0.0052
+   },
+   "by_category": {
+    "flip": {
+     "clean": {
+      "n": 147,
+      "changed": 0.3741,
+      "forced": 0.2109,
+      "correct": 0.2449
+     },
+     "corrupt": {
+      "n": 147,
+      "changed": 0.3401,
+      "forced": 0.2585,
+      "correct": 0.1769
+     },
+     "effect": -0.034
+    },
+    "kept": {
+     "clean": {
+      "n": 193,
+      "changed": 0.0674,
+      "forced": 0.0933,
+      "correct": 0.9326
+     },
+     "corrupt": {
+      "n": 193,
+      "changed": 0.0622,
+      "forced": 0.1192,
+      "correct": 0.9378
+     },
+     "effect": -0.0052
+    },
+    "late": {
+     "clean": {
+      "n": 80,
+      "changed": 0.125,
+      "forced": 0.2125,
+      "correct": 0.875
+     },
+     "corrupt": {
+      "n": 80,
+      "changed": 0.175,
+      "forced": 0.2375,
+      "correct": 0.825
+     },
+     "effect": 0.05
+    }
+   }
   }
  },
  "qwen3-1.7b": {
@@ -4903,6 +5044,147 @@
    "acc_oracle": 0.7537,
    "flip_rate": 0.0224,
    "tokens_end": 5682.6
+  },
+  "intervene": {
+   "by_position": {
+    "0.25": {
+     "clean": {
+      "n": 69,
+      "changed": 0.1304,
+      "forced": 0.087,
+      "correct": 0.8116
+     },
+     "corrupt": {
+      "n": 69,
+      "changed": 0.1884,
+      "forced": 0.1159,
+      "correct": 0.7826
+     },
+     "effect": 0.058
+    },
+    "0.5": {
+     "clean": {
+      "n": 71,
+      "changed": 0.1127,
+      "forced": 0.0141,
+      "correct": 0.8451
+     },
+     "corrupt": {
+      "n": 71,
+      "changed": 0.1549,
+      "forced": 0.0423,
+      "correct": 0.8451
+     },
+     "effect": 0.0422
+    },
+    "0.75": {
+     "clean": {
+      "n": 73,
+      "changed": 0.0548,
+      "forced": 0.0548,
+      "correct": 0.8082
+     },
+     "corrupt": {
+      "n": 73,
+      "changed": 0.0959,
+      "forced": 0.0411,
+      "correct": 0.8219
+     },
+     "effect": 0.0411
+    },
+    "0.9": {
+     "clean": {
+      "n": 74,
+      "changed": 0.0405,
+      "forced": 0.0541,
+      "correct": 0.7973
+     },
+     "corrupt": {
+      "n": 74,
+      "changed": 0.0676,
+      "forced": 0.0676,
+      "correct": 0.7973
+     },
+     "effect": 0.0271
+    }
+   },
+   "before_stabilization": {
+    "clean": {
+     "n": 127,
+     "changed": 0.1575,
+     "forced": 0.0472,
+     "correct": 0.7874
+    },
+    "corrupt": {
+     "n": 127,
+     "changed": 0.2126,
+     "forced": 0.0787,
+     "correct": 0.7559
+    },
+    "effect": 0.0551
+   },
+   "after_stabilization": {
+    "clean": {
+     "n": 160,
+     "changed": 0.025,
+     "forced": 0.0563,
+     "correct": 0.8375
+    },
+    "corrupt": {
+     "n": 160,
+     "changed": 0.0563,
+     "forced": 0.0563,
+     "correct": 0.8562
+    },
+    "effect": 0.0313
+   },
+   "by_category": {
+    "flip": {
+     "clean": {
+      "n": 53,
+      "changed": 0.2453,
+      "forced": 0.0943,
+      "correct": 0.2075
+     },
+     "corrupt": {
+      "n": 53,
+      "changed": 0.3774,
+      "forced": 0.0943,
+      "correct": 0.283
+     },
+     "effect": 0.1321
+    },
+    "kept": {
+     "clean": {
+      "n": 192,
+      "changed": 0.0104,
+      "forced": 0.0365,
+      "correct": 0.9896
+     },
+     "corrupt": {
+      "n": 192,
+      "changed": 0.026,
+      "forced": 0.0625,
+      "correct": 0.974
+     },
+     "effect": 0.0156
+    },
+    "late": {
+     "clean": {
+      "n": 42,
+      "changed": 0.2143,
+      "forced": 0.0714,
+      "correct": 0.7857
+     },
+     "corrupt": {
+      "n": 42,
+      "changed": 0.2619,
+      "forced": 0.0476,
+      "correct": 0.7381
+     },
+     "effect": 0.0476
+    }
+   }
   }
  },
  "qwen3-4b": {
@@ -7355,6 +7637,147 @@
    "acc_oracle": 0.8769,
    "flip_rate": 0.0261,
    "tokens_end": 5495.1
+  },
+  "intervene": {
+   "by_position": {
+    "0.25": {
+     "clean": {
+      "n": 61,
+      "changed": 0.0328,
+      "forced": 0.082,
+      "correct": 0.8525
+     },
+     "corrupt": {
+      "n": 61,
+      "changed": 0.0656,
+      "forced": 0.0984,
+      "correct": 0.8197
+     },
+     "effect": 0.0328
+    },
+    "0.5": {
+     "clean": {
+      "n": 62,
+      "changed": 0.0484,
+      "forced": 0.0161,
+      "correct": 0.8387
+     },
+     "corrupt": {
+      "n": 62,
+      "changed": 0.0161,
+      "forced": 0.0806,
+      "correct": 0.871
+     },
+     "effect": -0.0323
+    },
+    "0.75": {
+     "clean": {
+      "n": 64,
+      "changed": 0.0156,
+      "forced": 0.0469,
+      "correct": 0.875
+     },
+     "corrupt": {
+      "n": 64,
+      "changed": 0.0312,
+      "forced": 0.0625,
+      "correct": 0.8281
+     },
+     "effect": 0.0156
+    },
+    "0.9": {
+     "clean": {
+      "n": 62,
+      "changed": 0.0484,
+      "forced": 0.1452,
+      "correct": 0.8548
+     },
+     "corrupt": {
+      "n": 62,
+      "changed": 0.0323,
+      "forced": 0.1613,
+      "correct": 0.871
+     },
+     "effect": -0.0161
+    }
+   },
+   "before_stabilization": {
+    "clean": {
+     "n": 91,
+     "changed": 0.0879,
+     "forced": 0.0659,
+     "correct": 0.7692
+    },
+    "corrupt": {
+     "n": 91,
+     "changed": 0.0879,
+     "forced": 0.1538,
+     "correct": 0.7473
+    },
+    "effect": 0.0
+   },
+   "after_stabilization": {
+    "clean": {
+     "n": 158,
+     "changed": 0.0063,
+     "forced": 0.0759,
+     "correct": 0.9051
+    },
+    "corrupt": {
+     "n": 158,
+     "changed": 0.0063,
+     "forced": 0.0696,
+     "correct": 0.9051
+    },
+    "effect": 0.0
+   },
+   "by_category": {
+    "flip": {
+     "clean": {
+      "n": 35,
+      "changed": 0.1143,
+      "forced": 0.2286,
+      "correct": 0.1143
+     },
+     "corrupt": {
+      "n": 35,
+      "changed": 0.0857,
+      "forced": 0.2571,
+      "correct": 0.0857
+     },
+     "effect": -0.0286
+    },
+    "kept": {
+     "clean": {
+      "n": 190,
+      "changed": 0.0105,
+      "forced": 0.0474,
+      "correct": 0.9895
+     },
+     "corrupt": {
+      "n": 190,
+      "changed": 0.0053,
+      "forced": 0.0579,
+      "correct": 0.9947
+     },
+     "effect": -0.0052
+    },
+    "late": {
+     "clean": {
+      "n": 24,
+      "changed": 0.125,
+      "forced": 0.0417,
+      "correct": 0.875
+     },
+     "corrupt": {
+      "n": 24,
+      "changed": 0.2083,
+      "forced": 0.2083,
+      "correct": 0.7917
+     },
+     "effect": 0.0833
+    }
+   }
   }
  }
 }
