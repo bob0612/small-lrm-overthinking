@@ -109,10 +109,10 @@ that only chooses among probed answers.
 \subsection{Stopping Rules}
 A rule sees $(a_i,c_i,t_i)_{i\le j}$ and decides whether to stop at $t_j$, answering $a_j$:
 \begin{itemize}
-\item \textbf{Fixed budget} $B$: stop at the first $t_j\ge B$.
-\item \textbf{Consistency} $(k, t_{\min})$: stop when the last $k$ answers agree and $t_j\ge t_{\min}$.
-\item \textbf{Confidence} $\tau$: stop when $c_j\ge\tau$.
-\item \textbf{Consistency + confidence} $(k,\tau)$: both.
+\item \emph{Fixed budget} $B$: stop at the first $t_j\ge B$.
+\item \emph{Consistency} $(k, t_{\min})$: stop when the last $k$ answers agree and $t_j\ge t_{\min}$.
+\item \emph{Confidence} $\tau$: stop when $c_j\ge\tau$.
+\item \emph{Consistency + confidence} $(k,\tau)$: both.
 \end{itemize}
 A rule that never fires answers $a_m$. Cost is the number of thinking tokens used.
 
@@ -139,14 +139,13 @@ Qwen3-1.7B \texttt{70d244c}, Qwen3-4B \texttt{1cfa9a7}.} Each trace may use up t
 
 \section{Results}
 \label{sec:results}
-Each model produced 2{,}120 traces (1{,}060 problems $\times$ 2 samples). Table~\ref{tab:outcomes} gives accuracy,
-the oracle and the outcome categories; Fig.~\ref{fig:traj} shows how the forced answer improves along the trace.
+Each model produced 2{,}120 traces (1{,}060 problems $\times$ 2 samples). Table~\ref{tab:outcomes} gives the
+accuracy of full thinking (the model's own answer) and of the oracle, the share of flip and never-correct traces, and
+the mean thinking tokens of both; Fig.~\ref{fig:traj} shows how the forced answer improves along the trace.
 
 \begin{table}[t]
 \centering
-\caption{Accuracy of full thinking (the model's own answer), accuracy of the oracle that stops at the first correct
-probe, share of flip and never-correct traces, and mean thinking tokens. All numbers in \%, except
-tokens.}
+\caption{Accuracy, outcomes (\%) and thinking tokens}
 \label{tab:outcomes}
 \scriptsize
 \setlength{\tabcolsep}{3.5pt}
@@ -190,7 +189,8 @@ cap (79\% for 1.7B), so we do not interpret the AIME rows.
 \end{figure}
 
 To see what predicts a flip, Table~\ref{tab:pred} compares signals available at the first correct probe, without the
-gold answer, between flip and kept traces. The strongest is the probability the model assigns to its forced answer:
+gold answer, between flip and kept traces (0.5 is chance; $\downarrow$ marks signals for which lower values
+indicate a flip). The strongest is the probability the model assigns to its forced answer:
 flips start from a less confident correct answer (mean 0.45 vs.\ 0.72 for 0.6B), so low confidence identifies flips
 with AUC 0.75 for 0.6B, falling to 0.58 for 4B. Flips also find the correct answer \emph{earlier} in the
 trace (AUC 0.71 for 0.6B), so a lucky early guess is more fragile than a derived one. Hesitation words separate the
@@ -198,8 +198,7 @@ classes only for 4B (AUC 0.64), and the number of distinct earlier answers is un
 
 \begin{table}[t]
 \centering
-\caption{AUC for separating flip from kept traces with each signal at the first correct probe (0.5 = chance).
-$\downarrow$: lower values indicate a flip.}
+\caption{AUC of flip predictors at the first correct probe}
 \label{tab:pred}
 \scriptsize
 \input{tables/predictors.tex}
@@ -207,7 +206,8 @@ $\downarrow$: lower values indicate a flip.}
 
 \subsection{Label-Free Stopping Rules (RQ2)}
 Fig.~\ref{fig:pareto} plots each rule family's accuracy--token frontier against full thinking and the oracle, and
-Table~\ref{tab:cv} gives the held-out result of tuning thresholds by grouped cross-validation. The oracle sits far above
+Table~\ref{tab:cv} gives the held-out accuracy and token saving (relative to full thinking) when thresholds are
+tuned by grouped cross-validation at accuracy tolerances of 0.5 and 2 points. The oracle sits far above
 every frontier: it is both more accurate than full thinking and 36--63\% cheaper. No rule matches full thinking
 accuracy within 0.5 points at any meaningful saving: even in-sample, every rule that saves tokens loses more than half a
 point on the pooled data, and under cross-validation the selected rule saves 2.1\%, 0.0\% and 4.7\% of tokens. Allowing a
@@ -231,8 +231,7 @@ family, pooled over datasets. The CV-selected rule is evaluated on held-out fold
 
 \begin{table}[t]
 \centering
-\caption{Held-out effect of the cross-validated rule, at two accuracy tolerances used for selection. ``Saved'' is
-the share of thinking tokens saved relative to full thinking.}
+\caption{Held-out results of the cross-validated rule}
 \label{tab:cv}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -242,15 +241,15 @@ the share of thinking tokens saved relative to full thinking.}
 \subsection{Commitment Test (RQ3)}
 For each model we took up to 50 kept, flip and late traces (sample 0, not truncated; 65--109 traces), cut each at
 25/50/75/90\% of its thinking, and continued sampling from the clean cut and from the cut with its last number changed
-(Table~\ref{tab:commit}). A continuation that ran out of tokens before boxing an answer was given the same forced probe
+A continuation that ran out of tokens before boxing an answer was given the same forced probe
 as the trajectories (1--27\% of rows, more often for corrupted cuts). We count the final answer as \emph{changed} when it
-differs from the trace's original answer.
+differs from the trace's original answer. Table~\ref{tab:commit} reports the change rate by cut position and by
+whether the cut comes before or after the \emph{stabilisation point}, from which every probe already equals the final
+answer.
 
 \begin{table}[t]
 \centering
-\caption{Commitment test: share of continuations whose final answer differs from the original trace's answer (\%),
-from a clean cut and from the same cut with its last number changed. Rows split cuts by position and by whether
-the cut is before or after the point from which every probe already equals the final answer.}
+\caption{Commitment test: answer change rate (\%)}
 \label{tab:commit}
 \scriptsize
 \setlength{\tabcolsep}{4pt}
