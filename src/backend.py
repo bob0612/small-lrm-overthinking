@@ -32,7 +32,7 @@ class VLLMBackend:
     def generate_traces(self, prompts: list[list[int]], n: int, max_tokens: int, seed: int) -> list[list[list[int]]]:
         from vllm import SamplingParams, TokensPrompt
 
-        sp = SamplingParams(n=n, max_tokens=max_tokens, seed=seed, **THINK_SAMPLING)
+        sp = SamplingParams(n=n, max_tokens=max_tokens, **THINK_SAMPLING)  # engine-level seed; a per-request seed forces a slow per-request sampler
         outs = self.llm.generate([TokensPrompt(prompt_token_ids=p) for p in prompts], sp)
         return [[list(c.token_ids) for c in o.outputs] for o in outs]
 
