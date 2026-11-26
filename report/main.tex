@@ -56,23 +56,20 @@ in the trace does not propagate.
 
 \section{Related Work}
 \label{sec:related}
-\subsection{Overthinking and Efficient Reasoning}
-Surveys organise efficient-reasoning methods into model-, output- and
-prompt-based approaches \cite{sui2025stop}. Budget forcing caps or extends thinking by editing the trace
+Surveys of efficient reasoning group methods by whether they change the model, the output or the prompt
+\cite{sui2025stop}. Budget forcing caps or extends thinking by editing the trace
 \cite{muennighoff2025s1}. Guan et al.\ build offline Pareto frontiers of termination methods for six models and show
 that dynamic early exit needs only 14.2\% of the budget to match full-thinking accuracy, while public online methods
 stay below their frontiers \cite{guan2026pareto}. Caldarella et al.\ separate verbose from harmful overthinking and note
 that practical policies without ground truth remain open \cite{caldarella2026thinking}.
 
-\subsection{Signals for Stopping}
-Liu and Wang stop when intermediate answers converge and cut 40\% of tokens on NQ, but
+Several stopping signals have been proposed. Liu and Wang stop when intermediate answers converge and cut 40\% of tokens on NQ, but
 report that convergence is not correctness on GPQA and AIME \cite{liu2025convergence}. Hidden-state probes predict
 correctness with ROC-AUC above 0.7 and enable 24\% savings at equal accuracy \cite{zhang2025know}; a probe on Qwen3-8B
 predicts the final outcome from the first few tokens \cite{david2025temporal}. These probes need training data and
 access to activations; our rules need neither.
 
-\subsection{Faithfulness of Reasoning}
-Interventions on chains of thought test whether the answer depends on them
+A separate line of work asks whether the answer depends on the reasoning at all. Lanham et al.\ test this by editing chains of thought and checking whether the answer follows
 \cite{lanham2023faithfulness}. Scalena et al.\ find a commitment boundary after which corrupting numbers leaves the
 answer unchanged in 95\% of runs, in 14B--26B models with greedy decoding \cite{scalena2026commitment}. Monitorability
 of reasoning is now treated as a safety property \cite{korbak2025monitorability}. We repeat the corruption test at
