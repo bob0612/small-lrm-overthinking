@@ -50,11 +50,11 @@ thinking may be less reliable. To our knowledge, whether overthinking at this sc
 \emph{harmful} has not been measured.
 
 We study three questions. The first is how often 0.6B--4B reasoning models reach a correct intermediate answer and
-still end with a wrong one, and how this depends on model size and problem difficulty (RQ1). The second is how close
+still end with a wrong one, and how this depends on model size and problem difficulty. The second is how close
 simple training-free stopping rules, based on a fixed budget, answer consistency or answer confidence, come to an
-oracle that stops at the first correct answer when their thresholds are chosen without test labels (RQ2). The third is
+oracle that stops at the first correct answer when their thresholds are chosen without test labels. The third is
 whether the thinking after the answer stabilises is still causally used, which we test by changing a number in the
-trace before and after that point (RQ3).
+trace before and after that point. Section~\ref{sec:results} answers the three questions in turn.
 
 We record answer trajectories for 6{,}360 thinking traces of three small Qwen3 models on
 GSM8K, MATH-500 and AIME, and release them with the code; Fig.~\ref{fig:mech} illustrates the method on one real
@@ -161,7 +161,7 @@ final accuracy in the first half of the trace.}
 \label{fig:traj}
 \end{figure}
 
-\subsection{Harmful Versus Wasted Overthinking (RQ1)}
+\subsection{Harmful Versus Wasted Overthinking}
 Flips exist at every size but are a small minority: 5.7\% of all traces for 0.6B (95\% CI
 4.7--6.8), 2.6\% for 1.7B (1.9--3.4) and 1.7\% for 4B (1.1--2.4). As a share of traces that were ever correct this is
 7.4\%, 2.9\% and 1.8\%. The flip rate thus falls by a factor of three from 0.6B to 4B, while accuracy rises from 71.6\%
@@ -204,7 +204,7 @@ classes only for 4B (AUC 0.64), and the number of distinct earlier answers is un
 \input{tables/predictors.tex}
 \end{table}
 
-\subsection{Label-Free Stopping Rules (RQ2)}
+\subsection{Label-Free Stopping Rules}
 Fig.~\ref{fig:pareto} plots each rule family's accuracy--token frontier against full thinking and the oracle, and
 Table~\ref{tab:cv} gives the held-out accuracy and token saving (relative to full thinking) when thresholds are
 tuned by grouped cross-validation at accuracy tolerances of 0.5 and 2 points. The oracle sits far above
@@ -238,7 +238,7 @@ family, pooled over datasets. The CV-selected rule is evaluated on held-out fold
 \input{tables/cv.tex}
 \end{table}
 
-\subsection{Commitment Test (RQ3)}
+\subsection{Commitment Test}
 For each model we took up to 50 kept, flip and late traces (sample 0, not truncated; 65--109 traces), cut each at
 25/50/75/90\% of its thinking, and continued sampling from the clean cut and from the cut with its last number changed
 A continuation that ran out of tokens before boxing an answer was given the same forced probe
