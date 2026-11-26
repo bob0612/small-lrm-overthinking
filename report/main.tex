@@ -40,41 +40,39 @@ token is paid for in latency. Their behaviour may differ: they are weaker, so fe
 answer, and they are known to loop. Whether overthinking at small scale is mostly \emph{wasted} or mostly
 \emph{harmful} is an empirical question we could not find answered.
 
-\textbf{Research questions.}
-\begin{itemize}
-\item[\textbf{RQ1}] How often do 0.6B--4B reasoning models reach a correct intermediate answer and end with a wrong one,
-and how does this depend on model size and problem difficulty?
-\item[\textbf{RQ2}] How close do simple, training-free stopping rules (fixed budget, answer consistency, answer
-confidence) get to an oracle that stops at the first correct answer, when their thresholds are chosen without test
-labels?
-\item[\textbf{RQ3}] Is the thinking after the answer stabilises still causally used? We change a number in the trace
-before and after that point and measure whether the final answer follows.
-\end{itemize}
+We therefore ask three questions. First (RQ1), how often do 0.6B--4B reasoning models reach a correct intermediate
+answer and end with a wrong one, and how does this depend on model size and problem difficulty? Second (RQ2), how close
+do simple, training-free stopping rules based on a fixed budget, answer consistency or answer confidence get to an
+oracle that stops at the first correct answer, when their thresholds are chosen without test labels? Third (RQ3), is
+the thinking after the answer stabilises still causally used? To answer it we change a number in the trace before and
+after that point and measure whether the final answer follows.
 
-\textbf{Contributions.}
-(1) Answer trajectories for 6{,}360 thinking traces of three small Qwen3 models on GSM8K, MATH-500 and AIME, released
-with code and per-probe data. (2) A measurement of harmful versus wasted overthinking at 0.6B--4B: flips are 5.7\% of
-traces at 0.6B and 1.7\% at 4B, while redundant thinking grows to 75\%. (3) A held-out evaluation of training-free
-stopping rules showing that they recover almost none of the oracle's savings at equal accuracy, with an analysis of
-why. (4) A controlled corruption test showing that answers lock in at the stabilisation point and that a single wrong
-number does not propagate.
+We record answer trajectories for 6{,}360 thinking traces of three small Qwen3 models on
+GSM8K, MATH-500 and AIME, and release them with the code. We find that correct-then-wrong traces fall from 5.7\% at
+0.6B to 1.7\% at 4B, while the share of redundant thinking grows to 75\%. In a held-out evaluation, training-free
+stopping rules recover almost none of the oracle's savings at equal accuracy, and we analyse why. Finally, a
+controlled corruption test shows that answers lock in at the point where they stabilise and that a single wrong number
+in the trace does not propagate.
 
 \section{Related Work}
 \label{sec:related}
-\textbf{Overthinking and efficient reasoning.} Surveys organise efficient-reasoning methods into model-, output- and
+\subsection{Overthinking and efficient reasoning}
+Surveys organise efficient-reasoning methods into model-, output- and
 prompt-based approaches \cite{sui2025stop}. Budget forcing caps or extends thinking by editing the trace
 \cite{muennighoff2025s1}. Guan et al.\ build offline Pareto frontiers of termination methods for six models and show
 that dynamic early exit needs only 14.2\% of the budget to match full-thinking accuracy, while public online methods
 stay below their frontiers \cite{guan2026pareto}. Caldarella et al.\ separate verbose from harmful overthinking and note
 that practical policies without ground truth remain open \cite{caldarella2026thinking}.
 
-\textbf{Signals for stopping.} Liu and Wang stop when intermediate answers converge and cut 40\% of tokens on NQ, but
+\subsection{Signals for stopping}
+Liu and Wang stop when intermediate answers converge and cut 40\% of tokens on NQ, but
 report that convergence is not correctness on GPQA and AIME \cite{liu2025convergence}. Hidden-state probes predict
 correctness with ROC-AUC above 0.7 and enable 24\% savings at equal accuracy \cite{zhang2025know}; a probe on Qwen3-8B
 predicts the final outcome from the first few tokens \cite{david2025temporal}. These probes need training data and
 access to activations; our rules need neither.
 
-\textbf{Faithfulness of reasoning.} Interventions on chains of thought test whether the answer depends on them
+\subsection{Faithfulness of reasoning}
+Interventions on chains of thought test whether the answer depends on them
 \cite{lanham2023faithfulness}. Scalena et al.\ find a commitment boundary after which corrupting numbers leaves the
 answer unchanged in 95\% of runs, in 14B--26B models with greedy decoding \cite{scalena2026commitment}. Monitorability
 of reasoning is now treated as a safety property \cite{korbak2025monitorability}. We repeat the corruption test at
@@ -124,12 +122,12 @@ final answer changes under corruption and under clean resampling.
 
 \section{Experimental Setup}
 \label{sec:setup}
-\textbf{Models.} Qwen3-0.6B, 1.7B and 4B \cite{qwen3} in thinking mode, bf16, sampling with the recommended
-temperature 0.6, top-$p$ 0.95, top-$k$ 20; two samples per problem. \textbf{Data.} 500 problems sampled from the GSM8K test
+We use Qwen3-0.6B, 1.7B and 4B \cite{qwen3} in thinking mode (bf16) and sample two traces per problem with the
+recommended temperature 0.6, top-$p$ 0.95 and top-$k$ 20. The data are 500 problems sampled from the GSM8K test
 set \cite{gsm8k} (seed 0), MATH-500 \cite{math,lightman2024verify} and the 60 AIME 2024/2025 problems. Answers are
-compared after normalisation and with \texttt{math-verify}. \textbf{Compute.} One NVIDIA A40 (48\,GB) rented for
+compared after normalisation and with \texttt{math-verify}. All runs used one NVIDIA A40 (48\,GB) rented for
 9.0 hours (US\$5.3) on RunPod, vLLM 0.11.0. Model commits: 0.6B \texttt{c1899de}, 1.7B \texttt{70d244c}, 4B
-\texttt{1cfa9a7}. Up to 8{,}192 thinking tokens per trace; 11--16\% of traces reach this cap (79\% on AIME for 1.7B).
+\texttt{1cfa9a7}. Each trace may use up to 8{,}192 thinking tokens; 11--16\% of traces reach this cap (79\% on AIME for 1.7B).
 
 \section{Results}
 \label{sec:results}
@@ -182,7 +180,7 @@ cap (79\% for 1.7B), so we do not interpret the AIME rows.
 \label{fig:level}
 \end{figure}
 
-\textbf{What predicts a flip?} Table~\ref{tab:pred} compares signals available at the first correct probe, without the
+To see what predicts a flip, Table~\ref{tab:pred} compares signals available at the first correct probe, without the
 gold answer, between flip and kept traces. The strongest is the probability the model assigns to its forced answer:
 flips start from a less confident correct answer (mean 0.45 vs 0.72 for 0.6B), giving an AUC of 0.75 for 0.6B when
 read in that direction, falling to 0.58 for 4B. Flips also find the correct answer \emph{earlier} in the trace (AUC
@@ -267,7 +265,8 @@ locked in at stabilisation.
 
 \section{Discussion and Limitations}
 \label{sec:limits}
-\textbf{Why do the stopping rules fail where the oracle succeeds?} The oracle's advantage comes from traces whose
+\subsection{Why the stopping rules fail where the oracle succeeds}
+The oracle's advantage comes from traces whose
 first correct answer is fleeting. Inspecting the 1.7B GSM8K flips, the correct number often appears as one reading of
 an ambiguous question or as an intermediate quantity; the model then settles on another reading and spends the rest of
 the trace confirming it. In one trace the model even verifies the gold value (``Let's say Erika has \$120 in
@@ -277,27 +276,30 @@ confidence stops on the model's \emph{final} reading, not the correct one. Conve
 can be consistent and wrong. The oracle--rule gap is therefore not a tuning problem: the signals we use cannot see what
 makes the oracle's answer right.
 
-\textbf{What can be saved?} Stabilisation suggests a different target. Since the final answer is fixed at 37--56\% of
+\subsection{What can be saved}
+Stabilisation suggests a different target. Since the final answer is fixed at 37--56\% of
 the trace and never moves afterwards, a rule only has to detect that the \emph{model's own} answer has stopped
 changing, not that it is correct. Our consistency rules approximate this, but they must also guard against early
 consistent guesses, which costs most of the savings on MATH-500. On easy problems (GSM8K) the same rules save 14--23\% of tokens for a
 loss of about 1 point, and 28--47\% for about 2 points, so a deployment that knows the problem is easy, or that routes by an estimate
 of difficulty, can stop early with little risk.
 
-\textbf{Scale.} Harmful overthinking is mainly a problem of the smallest model: at 0.6B one in fourteen ever-correct
+\subsection{Effect of scale}
+Harmful overthinking is mainly a problem of the smallest model: at 0.6B one in fourteen ever-correct
 traces ends wrong, and confidence at the first correct answer flags them with AUC 0.75. By 4B flips are rare (1.8\% of
 ever-correct traces) but three quarters of the thinking is redundant. Methods aimed at small models should thus target
 cost rather than accuracy.
 
 
-\textbf{Probes are a reading, not the model's answer.} A forced answer is what the model writes when made to stop,
+\subsection{Limitations}
+A forced answer is what the model writes when made to stop,
 which is the right quantity for a stopping rule but can differ from what it would write after a natural stop. At the
 end of thinking, where both exist, they disagree on 4.2\%, 1.1\% and 0.5\% of traces for 0.6B, 1.7B and 4B (8.4\% on MATH-500 for 0.6B), mostly in format: a dropped sign or square root, or a different number from the forced reading. We
 therefore use the model's own answer at the end. A forced probe can also output an intermediate quantity that happens to
 equal the gold answer (as in the example above), so our flip rates are upper bounds on genuine reversals of a
 committed answer, and the oracle is optimistic.
 
-\textbf{Scope.} One model family, one sampling setting, two samples per problem, mathematics only, and a probe every
+Our study covers one model family, one sampling setting, two samples per problem, mathematics only, and a probe every
 $\sim$128 tokens (finer probing would only move the oracle earlier). AIME results rest on 60 problems and are mostly
 truncated at 8{,}192 tokens, so we report them but do not draw conclusions from them. Thresholds are tuned per model;
 we did not test transfer across models or datasets. The commitment test changes one number; other corruptions
