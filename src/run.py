@@ -64,7 +64,7 @@ def answer_from_probe(backend, ids: list[int], lps: list[float]) -> tuple[str | 
     return None, total
 
 
-def run(backend, items, out_dir, n, max_think, every, seed, batch_traces=256, log=print):
+def run(backend, items, out_dir, n, max_think, every, seed, batch_traces=1024, log=print):
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "traces.jsonl")
     done = set()

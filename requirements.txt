@@ -1,5 +1,6 @@
 vllm==0.11.0
-datasets>=3.0
+transformers==4.57.1   # vLLM 0.11 breaks with transformers 5.x
+datasets==4.1.1        # datasets 5.x needs huggingface-hub>=1.31, which transformers 4.57 rejects
 math-verify[antlr4_13_2]==0.8.0
 numpy
 matplotlib
